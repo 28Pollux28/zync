@@ -2,7 +2,7 @@
 {% block content %}
 <div class="jumbotron">
     <div class="container">
-        <h1>Docker Config</h1>
+        <h1>Zync Config</h1>
     </div>
 </div>
 <div class="container">
@@ -16,19 +16,19 @@
                         aria-hidden="true">×</span></button>
             </div>
             {% endfor %}
-            <form method="post" accept-charset="utf-8" autocomplete="off" role="form" name='ansible_config'
+            <form method="post" accept-charset="utf-8" autocomplete="off" role="form" name='zync_config'
                 class="form-horizontal" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="deployer-url-input">
                         {{ form.deployer_url.label }}
                     </label>
-                    {{ form.deployer_url(class="form-control", id="deployer-url-input", placeholder="https://deployer.unitedctf.ca/") }}
+                    {{ form.deployer_url(class="form-control", id="deployer-url-input", placeholder="https://instancer.example.com/") }}
                 </div>
                 <div class="form-group">
-                    <label for="deployer-secret-input">
-                        {{ form.deployer_secret.label }}
+                    <label for="jwt-secret-input">
+                        {{ form.jwt_secret.label }}
                     </label>
-                    {{ form.deployer_secret(class="form-control", id="deployer-secret-input", placeholder="Ex: mysecret") }}
+                    {{ form.jwt_secret(class="form-control", id="jwt-secret-input", placeholder="Ex: mysecret") }}
                 </div>
                 {{ form.nonce() }}
                 <div class="col-md-13 text-center">
@@ -36,9 +36,10 @@
                         Submit
                     </button>
                 </div>
-        </div>
+
         <input type="hidden" name="id" value="1">
         </form>
+        </div>
     </div>
 </div>
 {% endblock content %}

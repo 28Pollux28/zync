@@ -1,10 +1,6 @@
 [
 	{
-	    "name": "Ansible Config",
-	    "route": "/admin/ansible_config"
-	},
-	{
-	    "name": "Ansible Status",
-	    "route": "/admin/ansible_status"
+	    "name": "Zync Config",
+	    "route": "/admin/zync_config"
 	}
 ]

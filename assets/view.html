@@ -1,9 +1,7 @@
 {% extends "challenge.html" %}
 {% block description %}
 {{ challenge.html }}
-<div class='mb-3 text-center' id='ansible_deploy_{{ challenge.id }}'>
-    <a onclick="deploy()" class='btn btn-dark border border-white'>
-        <small style='color:white;'><i class="fas fa-play me-1"></i>Déployer l'instance</small>
-    </a>
+<div class='mb-3 text-center' id='zync_deploy_{{ challenge.id }}'>
+    <div class="text-center"><i class="fas fa-circle-notch fa-spin fa-1x"></i></div>
 </div>
 {% endblock %}
