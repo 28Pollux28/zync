@@ -17,14 +17,22 @@ This plugin for CTFd integrates with the [Galvanize Instancer](https://github.co
    ```
    CTFd/CTFd/plugins/zync/
    ```
+2. Replace CTFd standard `docker-entrypoint.sh` with the one provided ([ctfd-docker-entrypoint.sh](ctfd-docker-entrypoint.sh)) or add the following lines (enables plugin dependencies installation) before the app start:
+   ```
+    for d in CTFd/plugins/*; do \
+        if [ -f "$d/requirements.txt" ]; then
+            pip install --no-cache-dir -r "$d/requirements.txt";
+        fi;
+    done;
+    ```
+   
+3. Restart CTFd.
 
-2. Restart CTFd.
-
-3. Navigate to **Plugins** → **Zync Config** (`/admin/zync_config`). Configure:
+4. Navigate to **Plugins** → **Zync Config** (`/admin/zync_config`). Configure:
    - **Instancer URL**: The full URL to your Galvanize Instancer (e.g., `https://instancer.example.com/`)
    - **JWT Secret**: The secret used to sign JWT tokens for the Instancer
 
-4. Create challenges with the **zync** challenge type.
+5. Create challenges with the **zync** challenge type.
 
 ## API
 
