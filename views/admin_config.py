@@ -1,3 +1,7 @@
+from datetime import datetime, timezone, timedelta
+
+import jwt
+import requests
 from flask import Blueprint, request, render_template
 from wtforms import (
     HiddenField,
@@ -54,8 +58,43 @@ def define_zync_admin(app):
         if request.method == "POST" and form.validate():
             form.populate_obj(config)
 
+            # Validate against galvanize that we can communicate
+
+            token_payload = {
+                "exp": datetime.now(tz=timezone.utc) + timedelta(minutes=180),
+                "iat": datetime.now(tz=timezone.utc),
+                "user_id": str(0),
+                "team_id": str(0),
+                "role": "admin",
+                "challenge_name": "config_check",
+                "category": "config_check",
+            }
+
+            token = jwt.encode(
+                token_payload, config.jwt_secret, algorithm="HS256"
+            )
+            try:
+                response = requests.post(config.deployer_url + "/admin/config_check", headers={
+                    "Authorization": f"Bearer {token}"
+                }, timeout=5)
+
+                match response.status_code:
+                    case 200:
+                        pass
+                    case 401:
+                        return render_template("zync_config.html", form=form, errors=["Invalid Instancer Secret"])
+                    case 403:
+                        return render_template("zync_config.html", form=form, errors=["Token role is incorrect, what have we done?"])
+
+            except Exception as e:
+                return render_template("zync_config.html", form=form, errors=["Invalid Instancer URL or Secret"])
+
+
+
             db.session.add(config)
             db.session.commit()
+
+            return render_template("zync_config.html", form=form, successes=["Instancer configuration saved"])
 
         return render_template("zync_config.html", form=form)
 
