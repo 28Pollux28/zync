@@ -144,6 +144,7 @@ function displayConnectionInfo(statusData) {
     const expiration_time = statusData.expiration_time;
     const extensions_left = statusData.extensions_left;
     const extension_time = statusData.extension_time || "30m";
+    const unique = statusData.unique;
 
     // If connection_info is a URL, make it a clickable link
     const connectionInfo = (connection_info.indexOf('http') === 0) ? `<a href="${connection_info}" target="_blank">${connection_info}</a>` : `<code>${connection_info}</code>`;
@@ -162,11 +163,16 @@ function displayConnectionInfo(statusData) {
         extendBoxHtml = `<div class="mt-2"><a onclick="extendInstance()" class='btn btn-outline-primary border zync-extend-btn'><small><i class="fas fa-clock me-1"></i>${extendLabel}</small></a></div>`;
     }
 
+    let deleteBoxHtml = "";
+    if (unique === false) {
+        deleteBoxHtml = `<div class="mt-2"><a onclick="confirm_delete_deployment()" data-bs-theme='dark' class='btn btn-danger border border-white'><small style='color:white;'><i class="fas fa-trash me-1"></i>Supprimer l'instance</small></a></div>`
+    }
+
     setDeploymentInfo(
         '<div>Instance disponible à&nbsp;:<br />' + connectionInfo + '</div>' +
         timeBoxHtml +
         extendBoxHtml +
-        `<div class="mt-2"><a onclick="confirm_delete_deployment()" data-bs-theme='dark' class='btn btn-danger border border-white'><small style='color:white;'><i class="fas fa-trash me-1"></i>Supprimer l'instance</small></a></div>`
+        deleteBoxHtml
     );
 
     // Start countdown if we have expiration time
@@ -355,7 +361,16 @@ async function getDeploymentStatus(skipLoadingState = false) {
                 showErrorMessage("Attention&nbsp;!", "Authentification invalide");
                 return;
             case 404:
-                resetDeployButton();
+                // check if response is empty or has json error message
+                if (!res.headers.get("Content-Type")?.includes("application/json")) {
+                    resetDeployButton();
+                    return;
+                }
+                const data404 = await res.json();
+                if (data404.message.includes("unique")) {
+                    // Hide deploy button if challenge is not unique
+                    document.querySelector(`#zync_deploy_${challengeId}`).style.display = "none";
+                }
                 return;
             case 500:
                 const errData = await res.json();
@@ -364,6 +379,7 @@ async function getDeploymentStatus(skipLoadingState = false) {
                 return;
         }
     } catch (err) {
+        console.log(err)
         if (err && (err.name === "AbortError")) return;
         showErrorMessage(
             "Attention&nbsp;!",

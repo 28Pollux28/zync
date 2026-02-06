@@ -1,6 +1,10 @@
 [
-	{
-	    "name": "Zync Config",
-	    "route": "/admin/zync_config"
-	}
+  {
+    "name": "Zync Config",
+    "route": "/admin/zync_config"
+  },
+  {
+    "name": "Zync Dashboard",
+    "route": "/admin/zync_dashboard"
+  }
 ]
