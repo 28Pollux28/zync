@@ -1,6 +1,8 @@
 # Changelog
 
 ## vX.X.X (YYYY-MM-DD)
+
+## v0.3.0 (2026-02-17)
  - Add reload challenge index to admin dashboard
 
 ## v0.1.1 (2025-02-07)
