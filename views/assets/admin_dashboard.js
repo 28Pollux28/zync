@@ -186,7 +186,7 @@
         showSpinner(true);
         try {
             const token = sessionStorage.getItem('jwt_admin');
-            const response = await fetch(`${apiUrl}/admin/list_unique_challs`, {
+            const response = await fetch(`${apiUrl}/admin/list-unique-challs`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -197,6 +197,7 @@
             }
 
             challenges = await response.json();
+            challenges.sort((a, b) => a.category.localeCompare(b.category) || a.challenge_name.localeCompare(b.challenge_name));
 
             // Get status for each challenge
             await Promise.all(challenges.map(async (chall) => {
@@ -241,7 +242,7 @@
 
                         // Schedule polling if status is transitional
                         if (statusData.status === 'starting' || statusData.status === 'stopping') {
-                            schedulePoll(chall, 2000);
+                            schedulePoll(chall, 0);
                         }
                     } else if (statusResp.status === 404) {
                         chall.status = 'not_deployed';
@@ -254,9 +255,8 @@
                     chall.status = 'error';
                     chall.connection_info = '';
                 }
+                renderTable();
             }));
-
-            renderTable();
         } catch (error) {
             showAlert('Error loading challenges: ' + error.message, 'danger');
         } finally {
@@ -272,20 +272,24 @@
         challenges.forEach((chall, index) => {
             const row = document.createElement('tr');
             row.setAttribute('data-challenge-index', index);
-            row.innerHTML = `
-                <td><input type="checkbox" class="chall-checkbox" data-index="${index}"></td>
-                <td>${escapeHtml(chall.category)}</td>
-                <td>${escapeHtml(chall.challenge_name)}</td>
-                <td><span class="badge badge-${getStatusBadge(chall.status)} status-badge">${chall.status}</span></td>
-                <td><code class="connection-info">${escapeHtml(chall.connection_info || 'N/A')}</code></td>
-                <td>
+            let actionsCell = chall.status === 'running' || chall.status === 'not_deployed' || chall.status === 'error' || chall.status === 'unknown' ? `
+                <td class="actions-cell">
                     <button class="btn btn-sm btn-success deploy-one-btn" data-index="${index}" ${chall.status === 'running' || chall.status === 'starting' ? 'disabled' : ''}>
                         <i class="fas fa-play"></i> Deploy
                     </button>
                     <button class="btn btn-sm btn-danger terminate-one-btn" data-index="${index}" ${chall.status !== 'running' && chall.status !== 'starting' ? 'disabled' : ''}>
                         <i class="fas fa-stop"></i> Terminate
                     </button>
-                </td>
+                </td>` :
+                `<td class="actions-cell"><div class="text-center"><i class="fas fa-circle-notch fa-spin fa-1x"></i></div></td>`;
+
+            row.innerHTML = `
+                <td><input type="checkbox" class="chall-checkbox" data-index="${index}"></td>
+                <td>${escapeHtml(chall.category)}</td>
+                <td>${escapeHtml(chall.challenge_name)}</td>
+                <td><span class="badge badge-${getStatusBadge(chall.status)} status-badge">${chall.status}</span></td>
+                <td><code class="connection-info">${escapeHtml(chall.connection_info || 'N/A')}</code></td>
+                ${actionsCell}
             `;
             tbody.appendChild(row);
         });
@@ -476,6 +480,31 @@
         }
     }
 
+    // Reload challenges from Galvanize
+    async function reloadChallengesFromGalvanize() {
+        try {
+            const token = sessionStorage.getItem('jwt_admin');
+            const response = await fetch(`${apiUrl}/admin/reload-challs`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to reload challenges');
+            }
+
+            showAlert('Challenges reloaded successfully in Galvanize', 'success');
+
+            // Reload the challenges list
+            await loadChallenges();
+        } catch (error) {
+            showAlert('Error reloading challenges: ' + error.message, 'danger');
+        }
+    }
+
     // Utility functions
     function showAlert(message, type) {
         const container = document.getElementById('alert-container');
@@ -519,6 +548,7 @@
     document.getElementById('terminate-selected-btn').addEventListener('click', terminateSelected);
     document.getElementById('deploy-all-btn').addEventListener('click', deployAll);
     document.getElementById('terminate-all-btn').addEventListener('click', terminateAll);
+    document.getElementById('reload-challs-btn').addEventListener('click', reloadChallengesFromGalvanize);
     document.getElementById('refresh-btn').addEventListener('click', loadChallenges);
 
     // Initialize on page load

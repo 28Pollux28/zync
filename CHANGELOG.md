@@ -1,5 +1,8 @@
 # Changelog
 
+## vX.X.X (YYYY-MM-DD)
+ - Add reload challenge index to admin dashboard
+
 ## v0.1.1 (2025-02-07)
  - Add admin dashboard
  - Handle unique challenges in challenge view for players

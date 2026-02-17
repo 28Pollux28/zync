@@ -66,15 +66,15 @@ def define_zync_admin(app):
                 "user_id": str(0),
                 "team_id": str(0),
                 "role": "admin",
-                "challenge_name": "config_check",
-                "category": "config_check",
+                "challenge_name": "config-check",
+                "category": "config-check",
             }
 
             token = jwt.encode(
                 token_payload, config.jwt_secret, algorithm="HS256"
             )
             try:
-                response = requests.post(config.deployer_url + "/admin/config_check", headers={
+                response = requests.post(config.deployer_url + "/admin/config-check", headers={
                     "Authorization": f"Bearer {token}"
                 }, timeout=5)
 
