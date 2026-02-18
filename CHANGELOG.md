@@ -1,6 +1,8 @@
 # Changelog
 
 ## vX.X.X (YYYY-MM-DD)
+
+## v0.4.0 (2026-02-18)
  - Add error deployments monitoring section with auto-refresh (10s) in admin dashboard
  - Add team deployments overview section with auto-refresh (60s) in admin dashboard
  - Add countdown timers showing time until next auto-refresh
