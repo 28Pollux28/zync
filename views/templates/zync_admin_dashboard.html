@@ -1,5 +1,55 @@
 {% extends 'admin/base.html' %}
 {% block content %}
+<style>
+    .card-header .btn-link {
+        text-decoration: none;
+        color: #333;
+    }
+    .card-header .btn-link:hover {
+        text-decoration: none;
+        color: #007bff;
+    }
+    .card:hover {
+        cursor: initial;
+    }
+    .card-header .btn-link[aria-expanded="true"] .fa-chevron-right {
+        transform: rotate(90deg);
+        transition: transform 0.3s;
+    }
+    .card-header .btn-link[aria-expanded="false"] .fa-chevron-right {
+        transition: transform 0.3s;
+    }
+    #team-filter-input {
+        max-width: 400px;
+    }
+
+    .table-sm td, .table-sm th {
+        padding: 0.5rem;
+    }
+    .error-toggle-btn {
+        color: #dc3545;
+        text-decoration: none;
+        vertical-align: baseline;
+    }
+    .error-toggle-btn:hover {
+        color: #c82333;
+        text-decoration: none;
+    }
+    .error-message-text {
+        word-break: break-word;
+        white-space: pre-wrap;
+    }
+    /* Make error deployment action buttons consistent width */
+    #error-deployments-tbody .retry-deploy-btn,
+    #error-deployments-tbody .retry-terminate-btn,
+    #error-deployments-tbody .retry-delete-btn {
+        width: 140px;
+        display: inline-block;
+        text-align: center;
+        margin-bottom: 2px;
+        margin-right: 2px;
+    }
+</style>
 <div class="jumbotron">
     <div class="container">
         <h1>Zync Admin Dashboard</h1>
@@ -10,55 +60,144 @@
         <div class="col-md-12">
             <div id="alert-container"></div>
 
-            <div class="btn-toolbar mb-3" role="toolbar">
-                <div class="btn-group mr-2" role="group">
-                    <button id="deploy-selected-btn" class="btn btn-success" disabled>
-                        <i class="fas fa-play"></i> Deploy Selected
-                    </button>
-                    <button id="deploy-all-btn" class="btn btn-success">
-                        <i class="fas fa-play-circle"></i> Deploy All
-                    </button>
+            <!-- Error Deployments Section -->
+            <div class="card mb-4" id="error-deployments-section" style="display: none;">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0 d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="fas fa-exclamation-triangle"></i> Deployments with Errors
+                            <span class="badge badge-light ml-2" id="error-count">0</span>
+                        </span>
+                        <small class="font-weight-normal">
+                            <i class="fas fa-clock"></i> Next update in <span id="error-countdown">10</span>s
+                        </small>
+                    </h5>
                 </div>
-                <div class="btn-group mr-2" role="group">
-                    <button id="terminate-selected-btn" class="btn btn-danger" disabled>
-                        <i class="fas fa-stop"></i> Terminate Selected
-                    </button>
-                    <button id="terminate-all-btn" class="btn btn-danger">
-                        <i class="fas fa-stop-circle"></i> Terminate All
-                    </button>
-                </div>
-                <div class="btn-group" role="group">
-                    <button id="reload-challs-btn" class="btn btn-warning">
-                        <i class="fas fa-redo"></i> Reload Challenge Index (Galvanize)
-                    </button>
-                </div>
-                <div class="btn-group" role="group">
-                    <button id="refresh-btn" class="btn btn-primary">
-                        <i class="fas fa-sync"></i> Refresh
-                    </button>
+                <div class="card-body">
+                    <div id="error-deployments-spinner" class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </div>
+                    <div id="error-deployments-content" style="display: none;">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Team ID</th>
+                                    <th>Category</th>
+                                    <th>Challenge</th>
+                                    <th>Previous Status</th>
+                                    <th>Error Message</th>
+                                    <th>Created At</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="error-deployments-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="error-deployments-empty" class="text-center text-muted" style="display: none;">
+                        <p>No deployments in error status</p>
+                    </div>
                 </div>
             </div>
 
-            <div id="loading-spinner" class="text-center" style="display: none;">
-                <div class="spinner-border" role="status">
-                    <span class="sr-only">Loading...</span>
+            <!-- Unique Challenges Management Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-star"></i> Unique Challenges Management
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="btn-toolbar mb-3" role="toolbar">
+                        <div class="btn-group mr-1" role="group">
+                            <button id="deploy-selected-btn" class="btn btn-success" disabled>
+                                <i class="fas fa-play"></i> Deploy Selected
+                            </button>
+                            <button id="deploy-all-btn" class="btn btn-success">
+                                <i class="fas fa-play-circle"></i> Deploy All
+                            </button>
+                        </div>
+                        <div class="btn-group mr-1" role="group">
+                            <button id="terminate-selected-btn" class="btn btn-danger" disabled>
+                                <i class="fas fa-stop"></i> Terminate Selected
+                            </button>
+                            <button id="terminate-all-btn" class="btn btn-danger">
+                                <i class="fas fa-stop-circle"></i> Terminate All
+                            </button>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button id="reload-challs-btn" class="btn btn-warning px-2">
+                                <i class="fas fa-redo"></i> Reload Galvanize Challenge Index
+                            </button>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button id="refresh-btn" class="btn btn-primary">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="loading-spinner" class="text-center" style="display: none;">
+                        <div class="spinner-border" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </div>
+
+                    <table id="challenges-table" class="table table-striped table-hover" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="select-all"></th>
+                                <th>Category</th>
+                                <th>Challenge Name</th>
+                                <th>Status</th>
+                                <th>Connection Info</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="challenges-tbody">
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <table id="challenges-table" class="table table-striped table-hover" style="display: none;">
-                <thead>
-                    <tr>
-                        <th><input type="checkbox" id="select-all"></th>
-                        <th>Category</th>
-                        <th>Challenge Name</th>
-                        <th>Status</th>
-                        <th>Connection Info</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="challenges-tbody">
-                </tbody>
-            </table>
+            <!-- Team Deployments Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0 d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="fas fa-users"></i> Team Deployments Monitor
+                            <span class="badge badge-primary ml-2" id="team-count">0</span>
+                        </span>
+                        <span>
+                            <small class="text-muted mr-3">
+                                <i class="fas fa-clock"></i> Next update in <span id="team-countdown">60</span>s
+                            </small>
+                            <button class="btn btn-sm btn-info" id="refresh-team-deployments-btn">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="team-filter-input" placeholder="Filter by team ID...">
+                    </div>
+                    <div id="team-deployments-spinner" class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </div>
+                    <div id="team-deployments-content" style="display: none;">
+                        <div id="team-deployments-accordion">
+                        </div>
+                    </div>
+                    <div id="team-deployments-empty" class="text-center text-muted" style="display: none;">
+                        <p>No active team deployments</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

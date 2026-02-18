@@ -1,2 +1,3 @@
 wtforms
 PyJWT
+requests
