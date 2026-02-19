@@ -152,7 +152,7 @@ function displayConnectionInfo(statusData) {
     let timeBoxHtml = "";
     if (expiration_time) {
         const timeLeft = formatTimeLeft(expiration_time);
-        timeBoxHtml = `<div class="mt-2 p-2 border rounded bg-light"><strong>Temps restant&nbsp;:</strong> <span id="time_remaining">${timeLeft}</span></div>`;
+        timeBoxHtml = `<div class="mt-2 p-2 border rounded"><strong>Temps restant&nbsp;:</strong> <span id="time_remaining">${timeLeft}</span></div>`;
     }
 
     let extendBoxHtml = "";

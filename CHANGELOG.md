@@ -1,6 +1,7 @@
 # Changelog
 
 ## vX.X.X (YYYY-MM-DD)
+ - Change background on timebox (unreadable on core theme)
 
 ## v0.4.0 (2026-02-18)
  - Add error deployments monitoring section with auto-refresh (10s) in admin dashboard
