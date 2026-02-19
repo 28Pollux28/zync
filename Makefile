@@ -5,15 +5,15 @@ help:
 	@echo 'Usage:'
 	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' | sed -e 's/^/ /'
 
-## bump-patch: Bump patch version
+## bump-patch: Bump patch version and commit/tag/push
 bump-patch:
 	./scripts/bump_version.sh patch
 
-## bump-minor: Bump minor version
+## bump-minor: Bump minor version and commit/tag/push
 bump-minor:
 	./scripts/bump_version.sh minor
 
-## bump-major: Bump major version
+## bump-major: Bump major version and commit/tag/push
 bump-major:
 	./scripts/bump_version.sh major
 

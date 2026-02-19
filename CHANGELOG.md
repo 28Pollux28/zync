@@ -1,6 +1,7 @@
 # Changelog
 
 ## vX.X.X (YYYY-MM-DD)
+ - Modify bump version script to automatically tag and commit to master
 
 ## v0.5.0 (2026-02-19)
  - Add environment variable support for deployer configuration (ZYNC_DEPLOYER_URL, ZYNC_JWT_SECRET)
