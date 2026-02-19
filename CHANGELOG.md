@@ -1,6 +1,8 @@
 # Changelog
 
 ## vX.X.X (YYYY-MM-DD)
+
+## v0.5.0 (2026-02-19)
  - Add environment variable support for deployer configuration (ZYNC_DEPLOYER_URL, ZYNC_JWT_SECRET)
  - Update README with comprehensive feature documentation and environment variable usage
  - Change background on timebox (unreadable on core theme)
