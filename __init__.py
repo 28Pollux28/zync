@@ -9,7 +9,7 @@ from .api.deploy import deploy_namespace
 from .models.challenge_type import ZyncChallengeType
 from .views.admin_config import define_zync_admin, ZyncConfig
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 
 
 def load(app):
