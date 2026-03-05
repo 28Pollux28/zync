@@ -1,7 +1,7 @@
 import os
 
 from CTFd.api import CTFd_API_v1
-from CTFd.plugins import register_plugin_assets_directory
+from CTFd.plugins import register_plugin_assets_directory, register_plugin_script
 from CTFd.plugins.challenges import CHALLENGE_CLASSES
 
 from .views.admin_dashboard import define_zync_admin_dashboard
@@ -38,6 +38,7 @@ def load(app):
     register_plugin_assets_directory(
         app, base_path="/plugins/zync/assets"
     )
+    register_plugin_script("/plugins/zync/assets/footer.js")
     define_zync_admin(app)
     define_zync_admin_dashboard(app)
     CTFd_API_v1.add_namespace(deploy_namespace, "/deploy")
