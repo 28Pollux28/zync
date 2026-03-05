@@ -2,6 +2,8 @@
 
 ## vX.X.X (YYYY-MM-DD)
 
+## v0.5.2 (2026-03-05)
+
 ## v0.5.1 (2026-02-20)
  - Modify bump version script to automatically tag and commit to master
 
