@@ -146,8 +146,10 @@ function displayConnectionInfo(statusData) {
     const extension_time = statusData.extension_time || "30m";
     const unique = statusData.unique;
 
-    // If connection_info is a URL, make it a clickable link
-    const connectionInfo = (connection_info.indexOf('http') === 0) ? `<a href="${connection_info}" target="_blank">${connection_info}</a>` : `<code>${connection_info}</code>`;
+    // One entry per line; HTTP URLs become clickable links
+    const connectionInfo = connection_info.split('\n').filter(line => line.trim() !== '').map(line =>
+        (line.indexOf('http') === 0) ? `<a href="${line}" target="_blank">${line}</a>` : `<code>${line}</code>`
+    ).join('<br>');
 
     let timeBoxHtml = "";
     if (expiration_time) {
@@ -263,7 +265,7 @@ async function getToken(challengeId) {
             throw new Error("Missing token in response");
         }
 
-        sessionStorage.setItem("jwt_" + challengeId, token);
+        sessionStorage.setItem(zyncTokenKey(challengeId), token);
         return true;
     } catch (err) {
         showErrorMessage(
@@ -274,8 +276,13 @@ async function getToken(challengeId) {
     }
 }
 
+function zyncTokenKey(challengeId) {
+    const cat = (CTFd._internal.challenge.data && CTFd._internal.challenge.data.category) || "";
+    return "jwt_" + challengeId + "_" + cat;
+}
+
 async function ensureToken(challengeId) {
-     if (!sessionStorage.getItem("jwt_"+challengeId)) {
+     if (!sessionStorage.getItem(zyncTokenKey(challengeId))) {
         const tokenObtained = await getToken(challengeId);
         if (!tokenObtained) {
             return false;
@@ -283,10 +290,17 @@ async function ensureToken(challengeId) {
     }
 
     // check JWT validity
-    const token = sessionStorage.getItem("jwt_"+challengeId);
+    const token = sessionStorage.getItem(zyncTokenKey(challengeId));
     const tokenParts = token.split('.');
     const now = Math.ceil(Date.now() / 1000);
-    if (tokenParts.length !== 3 || (JSON.parse(atob(tokenParts[1])).exp < now)) {
+    let payload = {};
+    try {
+        payload = JSON.parse(atob(tokenParts[1]));
+    } catch (e) {
+        payload = {};
+    }
+    const currentCat = (CTFd._internal.challenge.data && CTFd._internal.challenge.data.category) || "";
+    if (tokenParts.length !== 3 || payload.exp < now || (payload.category && payload.category !== currentCat)) {
         const tokenObtained = await getToken(challengeId);
         if (!tokenObtained) {
             return false;
@@ -326,7 +340,7 @@ async function getDeploymentStatus(skipLoadingState = false) {
         return;
     }
 
-    const token = sessionStorage.getItem("jwt_" + challengeId);
+    const token = sessionStorage.getItem(zyncTokenKey(challengeId));
 
     try {
         const res = await fetch(localStorage.getItem("deployer_url") + "/status", {
@@ -361,16 +375,14 @@ async function getDeploymentStatus(skipLoadingState = false) {
                 showErrorMessage("Attention&nbsp;!", "Authentification invalide");
                 return;
             case 404:
-                // check if response is empty or has json error message
-                if (!res.headers.get("Content-Type")?.includes("application/json")) {
-                    resetDeployButton();
-                    return;
+                if (res.headers.get("Content-Type")?.includes("application/json")) {
+                    const data404 = await res.json().catch(() => ({}));
+                    if (data404.message && data404.message.includes("unique")) {
+                        document.querySelector(`#zync_deploy_${challengeId}`).style.display = "none";
+                        return;
+                    }
                 }
-                const data404 = await res.json();
-                if (data404.message.includes("unique")) {
-                    // Hide deploy button if challenge is not unique
-                    document.querySelector(`#zync_deploy_${challengeId}`).style.display = "none";
-                }
+                resetDeployButton();
                 return;
             case 500:
                 const errData = await res.json();
@@ -405,7 +417,7 @@ async function deploy() {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": "Bearer " + sessionStorage.getItem("jwt_" + CTFd._internal.challenge.data.id),
+                "Authorization": "Bearer " + sessionStorage.getItem(zyncTokenKey(CTFd._internal.challenge.data.id)),
             },
             body: JSON.stringify({
                 challenge_name: CTFd._internal.challenge.data.name,
@@ -474,7 +486,7 @@ async function extendInstance() {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": "Bearer " + sessionStorage.getItem("jwt_" + challengeId),
+                "Authorization": "Bearer " + sessionStorage.getItem(zyncTokenKey(challengeId)),
             },
         });
 
@@ -538,7 +550,7 @@ async function delete_deployment() {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": "Bearer " + sessionStorage.getItem("jwt_" + challengeId),
+                "Authorization": "Bearer " + sessionStorage.getItem(zyncTokenKey(challengeId)),
             },
             body: JSON.stringify({
                 challenge_name: challengeName,

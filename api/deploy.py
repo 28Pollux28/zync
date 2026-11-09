@@ -51,7 +51,9 @@ class DeploymentTokenAPI(Resource):
             "exp": datetime.now(tz=timezone.utc) + timedelta(minutes=180),
             "iat": datetime.now(tz=timezone.utc),
             "user_id": str(user.id),
-            "team_id": str(team.id) if team else None,
+            # Galvanize keys per-player deployments by team_id. In CTFd's
+            # individual mode there is no team, so use the user's ID.
+            "team_id": str(team.id) if team else str(user.id),
             "role": "user",
             "challenge_name": challenge.name,
             "category": category,
