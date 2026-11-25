@@ -4,6 +4,7 @@ from CTFd.api import CTFd_API_v1
 from CTFd.plugins import register_plugin_assets_directory, register_plugin_script
 from CTFd.plugins.challenges import CHALLENGE_CLASSES
 
+from .views.admin_challenges import define_zync_admin_challenges
 from .views.admin_dashboard import define_zync_admin_dashboard
 from .api.deploy import deploy_namespace
 from .models.challenge_type import ZyncChallengeType
@@ -41,4 +42,5 @@ def load(app):
     register_plugin_script("/plugins/zync/assets/footer.js")
     define_zync_admin(app)
     define_zync_admin_dashboard(app)
+    define_zync_admin_challenges(app)
     CTFd_API_v1.add_namespace(deploy_namespace, "/deploy")

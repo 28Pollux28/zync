@@ -6,5 +6,9 @@
   {
     "name": "Zync Dashboard",
     "route": "/admin/zync_dashboard"
+  },
+  {
+    "name": "Zync Challenges",
+    "route": "/admin/zync_challenges"
   }
 ]
