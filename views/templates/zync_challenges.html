@@ -1,0 +1,204 @@
+{% extends 'admin/base.html' %}
+{% block content %}
+<style>
+    .zc-log {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        font-family: SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.8rem;
+        height: 420px;
+        overflow-y: auto;
+        padding: 0.75rem;
+        border-radius: 0.25rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    .zc-log .lvl-DEBUG { color: #8a8a8a; }
+    .zc-log .lvl-INFO { color: #d4d4d4; }
+    .zc-log .lvl-SUCCESS { color: #6fcf73; }
+    .zc-log .lvl-WARNING { color: #e5c07b; }
+    .zc-log .lvl-ERROR { color: #f07178; }
+    .zc-log.hide-debug .lvl-DEBUG { display: none; }
+    .zc-table td { vertical-align: middle; }
+    .zc-table .zc-name { font-weight: 600; }
+    .zc-table .zc-path { font-size: 0.75rem; color: #6c757d; word-break: break-all; }
+    .zc-row-actions .btn { padding: 0.15rem 0.45rem; }
+    .card:hover { cursor: initial; }
+    .zc-tasks .list-group-item { cursor: pointer; padding: 0.4rem 0.75rem; font-size: 0.85rem; }
+    .zc-tasks .list-group-item.active { cursor: default; }
+    .zc-progress { height: 4px; margin-top: 0.25rem; }
+</style>
+
+<div class="jumbotron">
+    <div class="container">
+        <h1>Zync Challenges</h1>
+        <p class="text-muted mb-0">The challenge repositories of Galvanize: build their images on its hosts, ingest, sync and delete their challenges in CTFd</p>
+    </div>
+</div>
+
+<div class="container-fluid px-4">
+    <div id="zc-alerts"></div>
+
+    <div class="row">
+        <div class="col-xl-8">
+
+            <!-- Repositories (Galvanize) -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-code-branch"></i> Repositories <small class="text-muted" id="zc-galvanize-url"></small></h5>
+                    <div class="d-flex align-items-center">
+                        <span class="small text-muted mr-2" id="zc-refresh-status" aria-live="polite"></span>
+                        <button class="btn btn-sm btn-outline-secondary mr-1" id="zc-refresh"><i class="fas fa-sync"></i> Refresh</button>
+                        <button class="btn btn-sm btn-primary" data-toggle="collapse" data-target="#zc-clone-form" id="zc-clone-toggle">
+                            <i class="fas fa-plus"></i> Clone a repository
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="zc-clone-form" class="collapse mb-3 border rounded p-3 bg-light">
+                        <div class="small text-muted mb-2" id="zc-clone-sources"></div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="zc-clone-url">Git URL</label>
+                                <input type="text" class="form-control" id="zc-clone-url" placeholder="https://github.com/org/challenges.git" required>
+                                <small class="form-text text-muted">Tokens for private repositories are configured in Galvanize (repositories.sources), never here.</small>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="zc-clone-ref">Branch or tag</label>
+                                <input type="text" class="form-control" id="zc-clone-ref" placeholder="default branch">
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="zc-clone-name">Folder name</label>
+                                <input type="text" class="form-control" id="zc-clone-name" placeholder="from the URL">
+                            </div>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="zc-clone-force">
+                            <label class="form-check-label" for="zc-clone-force">Replace the folder if it already exists</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-download"></i> Clone</button>
+                    </form>
+
+                    <div id="zc-downloads"></div>
+                    <div id="zc-repos-empty" class="text-muted" style="display: none;"></div>
+                    <table class="table table-sm table-hover mb-0" id="zc-repos-table" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>Repository</th>
+                                <th>Git</th>
+                                <th class="text-center">Challenges</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="zc-repos-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Challenges of the selected repository -->
+            <div class="card mb-4" id="zc-challenges-card" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-flag"></i> Challenges of <span id="zc-repo-title"></span>
+                        <span class="badge badge-secondary ml-2" id="zc-challenge-count">0</span></h5>
+                </div>
+                <div class="card-body">
+                    <div id="zc-skipped" class="alert alert-warning small py-2" style="display: none;"></div>
+
+                    <div class="form-row align-items-end mb-2">
+                        <div class="col-md-3 mb-2">
+                            <label class="small mb-1" for="zc-filter-category">Category</label>
+                            <select class="form-control form-control-sm" id="zc-filter-category">
+                                <option value="">All categories</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="small mb-1" for="zc-filter-text">Search</label>
+                            <input type="text" class="form-control form-control-sm" id="zc-filter-text" placeholder="Name or path...">
+                        </div>
+                        <div class="col-md-5 mb-2">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="zc-opt-force">
+                                <label class="form-check-label small" for="zc-opt-force" title="Rebuild: no cache. Delete: also delete challenges other challenges require.">Force</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="zc-opt-dry">
+                                <label class="form-check-label small" for="zc-opt-dry" title="Ingest, sync and delete: show what would be done, change nothing">Dry run</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap align-items-center mb-3">
+                        <div class="btn-group btn-group-sm mr-3 mb-2" role="group" aria-label="Scope">
+                            <button type="button" class="btn btn-outline-dark" data-scope="selected" id="zc-scope-selected">Selected (<span id="zc-selected-count">0</span>)</button>
+                            <button type="button" class="btn btn-outline-dark" data-scope="filtered">Shown (<span id="zc-filtered-count">0</span>)</button>
+                            <button type="button" class="btn btn-outline-dark active" data-scope="all">Whole repository</button>
+                        </div>
+                        <div class="btn-group btn-group-sm mr-2 mb-2" role="group">
+                            <button class="btn btn-info" data-action="build" title="Build the images on Galvanize's hosts"><i class="fas fa-hammer"></i> Rebuild</button>
+                            <button class="btn btn-success" data-action="ingest"><i class="fas fa-file-import"></i> Ingest</button>
+                            <button class="btn btn-primary" data-action="sync"><i class="fas fa-sync-alt"></i> Sync</button>
+                            <button class="btn btn-dark" data-action="all" title="Rebuild the images, then ingest the new challenges"><i class="fas fa-forward"></i> Rebuild + ingest</button>
+                        </div>
+                        <div class="btn-group btn-group-sm mr-2 mb-2" role="group">
+                            <button class="btn btn-danger" data-action="delete"><i class="fas fa-trash"></i> Delete from CTFd</button>
+                        </div>
+                        <div class="btn-group btn-group-sm mb-2" role="group">
+                            <button class="btn btn-outline-secondary" data-action="images-status" title="Check which images exist on Galvanize's hosts"><i class="fab fa-docker"></i> Check images</button>
+                            <button class="btn btn-outline-danger" data-action="images-remove" title="Remove the built images from Galvanize's hosts"><i class="fab fa-docker"></i> Remove images</button>
+                        </div>
+                    </div>
+
+                    <div id="zc-challenges-spinner" class="text-center my-4" style="display: none;">
+                        <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover zc-table">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="zc-select-all" title="Select the challenges shown"></th>
+                                    <th>Challenge</th>
+                                    <th>Type</th>
+                                    <th>Image</th>
+                                    <th>CTFd</th>
+                                    <th class="text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="zc-challenges-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log of the current task, and recent tasks -->
+        <div class="col-xl-4">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-terminal"></i> <span id="zc-task-title">Task</span></h5>
+                    <span>
+                        <span id="zc-task-status"></span>
+                        <button class="btn btn-sm btn-outline-danger ml-1" id="zc-task-cancel" style="display: none;" title="Cancel this task">Cancel</button>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="zc-show-debug">
+                            <label class="form-check-label small" for="zc-show-debug">Show details</label>
+                        </div>
+                        <small class="text-muted" id="zc-task-meta"></small>
+                    </div>
+                    <div class="progress zc-progress mb-2" id="zc-task-progress" style="display: none;" title="Galvanize reports no progress: running">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated w-100" role="progressbar"></div>
+                    </div>
+                    <div class="zc-log hide-debug" id="zc-log"><span class="lvl-DEBUG">No task yet.</span></div>
+                    <h6 class="mt-3">Recent tasks</h6>
+                    <div class="list-group zc-tasks" id="zc-tasks"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('admin_zync_challenges.static', filename='admin_challenges.js') }}"></script>
+{% endblock content %}

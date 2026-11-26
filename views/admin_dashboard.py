@@ -1,11 +1,9 @@
-from datetime import datetime, timezone, timedelta
-
-import jwt
 from flask import Blueprint, render_template, jsonify, request
 
 from CTFd.models import Challenges
 from CTFd.utils.decorators import admins_only
 from .admin_config import ZyncConfig
+from ..manager.galvanize import admin_token
 
 
 def define_zync_admin_dashboard(app):
@@ -30,17 +28,7 @@ def define_zync_admin_dashboard(app):
         if not config or not config.jwt_secret or not config.deployer_url:
             return jsonify({"error": "Zync not configured"}), 500
 
-        token_payload = {
-            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=2),
-            "iat": datetime.now(tz=timezone.utc),
-            "user_id": str(0),
-            "team_id": str(0),
-            "role": "admin",
-            "challenge_name": "",
-            "category": "",
-        }
-
-        token = jwt.encode(token_payload, config.jwt_secret, algorithm="HS256")
+        token = admin_token(config.jwt_secret, minutes=120)
 
         return jsonify({
             "token": token,
@@ -69,17 +57,7 @@ def define_zync_admin_dashboard(app):
         if not challenge:
             return jsonify({"error": "Challenge not found"}), 404
 
-        token_payload = {
-            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=2),
-            "iat": datetime.now(tz=timezone.utc),
-            "user_id": str(0),
-            "team_id": str(0),
-            "role": "admin",
-            "challenge_name": challenge_name,
-            "category": category,
-        }
-
-        token = jwt.encode(token_payload, config.jwt_secret, algorithm="HS256")
+        token = admin_token(config.jwt_secret, minutes=120, challenge_name=challenge_name, category=category)
 
         return jsonify({
             "token": token,
